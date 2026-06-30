@@ -1,8 +1,40 @@
 import streamlit as st
+import requests
+import pytz
+from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
 from database import get_members, get_schedules, get_attendance, get_fees
 
 st.set_page_config(page_title="모임 관리", page_icon="📋", layout="wide")
-st.title("📋 모임 관리 대시보드")
+
+st_autorefresh(interval=60000, key="clock_refresh")
+
+def get_seoul_info():
+    now = datetime.now(pytz.timezone("Asia/Seoul"))
+    try:
+        res = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={"latitude": 37.5665, "longitude": 126.9780, "current": "temperature_2m"},
+            timeout=3
+        )
+        temp = res.json()["current"]["temperature_2m"]
+        temp_str = f"{temp}°C"
+    except Exception:
+        temp_str = "-"
+    return now.strftime("%Y년 %m월 %d일 %H:%M"), temp_str
+
+seoul_time, temp = get_seoul_info()
+
+col_title, col_info = st.columns([3, 1])
+with col_title:
+    st.title("📋 모임 관리 대시보드")
+with col_info:
+    st.markdown(
+        f"<div style='text-align:right; padding-top:12px; line-height:1.8'>"
+        f"🕐 {seoul_time}<br>🌡️ 서울 {temp}"
+        f"</div>",
+        unsafe_allow_html=True
+    )
 
 members = get_members()
 schedules = get_schedules()
